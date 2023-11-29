@@ -1,12 +1,24 @@
-import express from 'express';
-const app = express();
+import express, { Router } from 'express';
+import bodyParser from 'body-parser';
+
 import connect from './db/mongo';
+import router from './routes';
+
+
+const app = express();
 const port = 3010;
 
 
-app.get('/', (req, res) => {
-  res.send('Hello World!');
-});
+app.use(express.json());
+app.use(express.urlencoded({
+  extended: true
+}));
+app.use(router);
+app.use(bodyParser.json());
+
+// app.get('/', (req, res) => {
+//   res.send('Hello World!');
+// });
 
 
 async function startApp() {
