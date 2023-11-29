@@ -115,7 +115,7 @@ class CategoryController {
          return;
       }
 
-      res.status(204).send(); 
+      res.status(200).json({removed: true, id: categoryId}); 
     } catch (error) {
       console.error('Error deleting category:', error);
       res.status(500).json({ error: 'Oops! An error occurred on our server. Please try again or contact support.' });
