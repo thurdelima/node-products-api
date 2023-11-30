@@ -1,6 +1,6 @@
 import { Schema, model, Document } from 'mongoose';
 
-interface Category extends Document {
+export interface Category extends Document {
     name: string;
 }
 

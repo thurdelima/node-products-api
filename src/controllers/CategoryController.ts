@@ -1,5 +1,5 @@
 import express, { Request, Response } from 'express';
-import CategoryModel from '../models/Category';
+import CategoryModel, {Category} from '../models/Category';
 import mongoose from 'mongoose';
 
 
@@ -30,7 +30,7 @@ class CategoryController {
   async getAllCategory(req: Request, res: Response): Promise<void> {
 
     try {
-      const categories = await CategoryModel.find();
+      const categories: Category[] = await CategoryModel.find();
       
 
       res.status(201).json(categories);
@@ -51,7 +51,6 @@ class CategoryController {
       }
 
       const category = await CategoryModel.findById(categoryId);
-      console.log(category)
 
       if (!category) {
         res.status(404).json({ error: 'Category not found' });
