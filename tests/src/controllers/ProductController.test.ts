@@ -8,11 +8,21 @@ import CategoryModel from '../../../src/models/Category';
 
 jest.mock('../../../src/models/Product', () => ({
   create: jest.fn(),
+  find: jest.fn(),
+  findById: jest.fn(),
 }));
 
 jest.mock('../../../src/models/Category', () => ({
   findById: jest.fn(),
 }));
+
+interface Product {
+  _id: string,
+  name: string,
+  amount: number,
+  idCategory: string
+}
+
 
 describe('ProductController test suite', () => {
 
@@ -20,7 +30,7 @@ describe('ProductController test suite', () => {
   let res: Response;
 
   beforeEach(() => {
-    req = { body: {} } as unknown as Request;
+    req = { params: { id: '123456789012345678901222' }, body: {} } as unknown as Request;
     res = {
       status: jest.fn().mockReturnThis(),
       json: jest.fn(),
@@ -47,6 +57,22 @@ describe('ProductController test suite', () => {
       _id: '123456789012345678901234',
       name: 'Existing Category',
     });
+  };
+
+  const setupSuccessfulGetById = (product: Product) => {
+    (ProductModel.findById as jest.Mock).mockResolvedValue(product);
+  };
+
+  const setupFailedGetById = (error: Error) => {
+    (ProductModel.findById as jest.Mock).mockRejectedValue(error);
+  };
+
+  const setupSuccessfulGetAll = (products: Product[]) => {
+    (ProductModel.find as jest.Mock).mockResolvedValue(products);
+  };
+
+  const setupFailedGetAll = (error: Error) => {
+    (ProductModel.find as jest.Mock).mockRejectedValue(error);
   };
 
   describe('POST requests', () => {
@@ -80,41 +106,41 @@ describe('ProductController test suite', () => {
 
     it('should handle missing fields', async () => {
       req.body = {};
-  
+
       await ProductController.createProduct(req, res);
-  
+
       expect(res.status).toHaveBeenCalledWith(400);
       expect(res.json).toHaveBeenCalledWith({ error: 'All fields are required' });
     });
 
     it('should handle invalid category ID', async () => {
       setupExistingCategory();
-  
+
       req.body = {
         name: 'Test Product',
         description: 'Product description',
         amount: 100,
         idCategory: 'invalid-id',
       };
-  
+
       await ProductController.createProduct(req, res);
-  
+
       expect(res.status).toHaveBeenCalledWith(400);
       expect(res.json).toHaveBeenCalledWith({ error: 'Invalid category ID' });
     });
 
     it('should handle non-existing category', async () => {
       (CategoryModel.findById as jest.Mock).mockResolvedValue(null);
-  
+
       req.body = {
         name: 'Test Product',
         description: 'Product description',
         amount: 100,
         idCategory: '123456789012345678901234',
       };
-  
+
       await ProductController.createProduct(req, res);
-  
+
       expect(res.status).toHaveBeenCalledWith(404);
       expect(res.json).toHaveBeenCalledWith({ error: 'Category does not exist' });
     });
@@ -122,20 +148,93 @@ describe('ProductController test suite', () => {
     it('should handle internal server error', async () => {
       setupFailedCreate(new Error('Test error'));
       setupExistingCategory();
-  
+
       req.body = {
         name: 'Test Product',
         description: 'Product description',
         amount: 100,
         idCategory: '123456789012345678901234',
       };
-  
+
       await ProductController.createProduct(req, res);
-  
+
       expect(res.status).toHaveBeenCalledWith(500);
       expect(res.json).toHaveBeenCalledWith({ error: 'Oops! An error occurred on our server. Please try again or contact support.' });
     });
+
+
+  })
+
+  describe('GET requests', () => {
+
+
+    it('should get all products successfully', async () => {
+      const mockProducts: Product[] = [
+        { _id: '123456789012345678901222', name: 'Product 1', amount: 20, idCategory: '123456789012345678901234' },
+        { _id: '123456789012345678901223', name: 'Product 2', amount: 23, idCategory: '123456789012345678901238' },
+      ];
+
+      setupSuccessfulGetAll(mockProducts);
+
+      await ProductController.getAllProduct(req, res);
+
+      expect((ProductModel.find as jest.Mock)).toHaveBeenCalledWith();
+      expect(res.status).toHaveBeenCalledWith(201);
+      expect(res.json).toHaveBeenCalledWith(mockProducts);
+    });
+
+    it('should get a product by ID successfully', async () => {
+      const mockProduct: Product = { _id: '123456789012345678901222', name: 'Test Product', amount: 20, idCategory: '123456789012345678901234' };
   
+      setupSuccessfulGetById(mockProduct);
+  
+      await ProductController.getProductById(req, res);
+  
+      expect((ProductModel.findById as jest.Mock)).toHaveBeenCalledWith('123456789012345678901222');
+      expect(res.status).toHaveBeenCalledWith(200);
+      expect(res.json).toHaveBeenCalledWith(mockProduct);
+    });
+
+    it('should handle internal server error', async () => {
+      setupFailedGetAll(new Error('Test error'));
+
+      await ProductController.getAllProduct(req, res);
+
+      expect(res.status).toHaveBeenCalledWith(500);
+      expect(res.json).toHaveBeenCalledWith({
+        error: 'Oops! An error occurred on our server. Please try again or contact support.',
+      });
+    });
+
+    it('should handle invalid product ID', async () => {
+      req.params.id = 'invalid-id';
+  
+      await ProductController.getProductById(req, res);
+  
+      expect(res.status).toHaveBeenCalledWith(400);
+      expect(res.json).toHaveBeenCalledWith({ error: 'Invalid product ID' });
+    });
+
+    it('should handle product not found', async () => {
+      setupFailedGetById(new Error('Product not found'));
+      (ProductModel.findById as jest.Mock).mockResolvedValue(null);
+  
+      await ProductController.getProductById(req, res);
+  
+      expect(res.status).toHaveBeenCalledWith(404);
+      expect(res.json).toHaveBeenCalledWith({ error: 'product not found' });
+    });
+
+    it('should handle internal server error', async () => {
+      setupFailedGetById(new Error('Test error'));
+  
+      await ProductController.getProductById(req, res);
+  
+      expect(res.status).toHaveBeenCalledWith(500);
+      expect(res.json).toHaveBeenCalledWith({
+        error: 'Oops! An error occurred on our server. Please try again or contact support.',
+      });
+    });
 
   })
 
