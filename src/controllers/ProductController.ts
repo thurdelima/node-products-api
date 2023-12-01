@@ -95,28 +95,28 @@ class ProductController {
   async updateProduct(req: Request, res: Response): Promise<void> {
 
     try {
-
+      
       const productId = req.params.id.trim();
       const { name, description, amount, idCategory } = req.body;
-
-      let validIdCategory = idCategory;
-      validIdCategory.trim();
-
-
-      if (!mongoose.Types.ObjectId.isValid(productId)) {
-        res.status(400).json({ error: 'Invalid product ID' });
-        return;
-      }
-
-      if (!mongoose.Types.ObjectId.isValid(validIdCategory)) {
-        res.status(400).json({ error: 'Invalid category ID' });
-        return;
-      }
 
       if (!name || !description || !amount || !idCategory) {
         res.status(400).json({ error: 'All fields are required' });
         return;
       }
+
+      let validIdCategory = idCategory;
+      
+      if (!mongoose.Types.ObjectId.isValid(productId)) {
+        res.status(400).json({ error: 'Invalid product ID' });
+        return;
+      }
+      
+      if (!mongoose.Types.ObjectId.isValid(validIdCategory)) {
+        res.status(400).json({ error: 'Invalid category ID' });
+        return;
+      }
+
+      validIdCategory.trim();
 
       const existCategory = await CategoryModel.findById(validIdCategory);
 
@@ -135,7 +135,6 @@ class ProductController {
         res.status(404).json({ error: 'Product not found' });
         return;
       }
-
 
       res.status(200).json(updatedProduct);
 

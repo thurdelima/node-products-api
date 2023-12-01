@@ -10,6 +10,7 @@ jest.mock('../../../src/models/Product', () => ({
   create: jest.fn(),
   find: jest.fn(),
   findById: jest.fn(),
+  findByIdAndUpdate: jest.fn()
 }));
 
 jest.mock('../../../src/models/Category', () => ({
@@ -73,6 +74,14 @@ describe('ProductController test suite', () => {
 
   const setupFailedGetAll = (error: Error) => {
     (ProductModel.find as jest.Mock).mockRejectedValue(error);
+  };
+
+  const setupSuccessfulUpdate = (product: any) => {
+    (ProductModel.findByIdAndUpdate as jest.Mock).mockResolvedValue(product);
+  };
+
+  const setupFailedUpdate = (error: Error) => {
+    (ProductModel.findByIdAndUpdate as jest.Mock).mockRejectedValue(error);
   };
 
   describe('POST requests', () => {
@@ -185,11 +194,11 @@ describe('ProductController test suite', () => {
 
     it('should get a product by ID successfully', async () => {
       const mockProduct: Product = { _id: '123456789012345678901222', name: 'Test Product', amount: 20, idCategory: '123456789012345678901234' };
-  
+
       setupSuccessfulGetById(mockProduct);
-  
+
       await ProductController.getProductById(req, res);
-  
+
       expect((ProductModel.findById as jest.Mock)).toHaveBeenCalledWith('123456789012345678901222');
       expect(res.status).toHaveBeenCalledWith(200);
       expect(res.json).toHaveBeenCalledWith(mockProduct);
@@ -208,9 +217,9 @@ describe('ProductController test suite', () => {
 
     it('should handle invalid product ID', async () => {
       req.params.id = 'invalid-id';
-  
+
       await ProductController.getProductById(req, res);
-  
+
       expect(res.status).toHaveBeenCalledWith(400);
       expect(res.json).toHaveBeenCalledWith({ error: 'Invalid product ID' });
     });
@@ -218,23 +227,149 @@ describe('ProductController test suite', () => {
     it('should handle product not found', async () => {
       setupFailedGetById(new Error('Product not found'));
       (ProductModel.findById as jest.Mock).mockResolvedValue(null);
-  
+
       await ProductController.getProductById(req, res);
-  
+
       expect(res.status).toHaveBeenCalledWith(404);
       expect(res.json).toHaveBeenCalledWith({ error: 'product not found' });
     });
 
     it('should handle internal server error', async () => {
       setupFailedGetById(new Error('Test error'));
-  
+
       await ProductController.getProductById(req, res);
-  
+
       expect(res.status).toHaveBeenCalledWith(500);
       expect(res.json).toHaveBeenCalledWith({
         error: 'Oops! An error occurred on our server. Please try again or contact support.',
       });
     });
+
+  })
+
+  describe('PUT requests', () => {
+
+    it('should update a product successfully', async () => {
+      const mockProduct: Product = { _id: '123456789012345678901222', amount: 40, name: 'Updated Product', idCategory: '123456789012345678901233' };
+
+      setupSuccessfulUpdate(mockProduct);
+      setupExistingCategory();
+
+      req.body = {
+        name: 'Updated Product',
+        description: 'Updated Product description',
+        amount: 200,
+        idCategory: '123456789012345678901234',
+      };
+
+      await ProductController.updateProduct(req, res);
+
+      expect((ProductModel.findByIdAndUpdate as jest.Mock)).toHaveBeenCalledWith(
+        '123456789012345678901222',
+        {
+          name: 'Updated Product',
+          description: 'Updated Product description',
+          amount: 200,
+          idCategory: '123456789012345678901234',
+        },
+        { new: true }
+      );
+
+      expect(res.status).toHaveBeenCalledWith(200);
+      expect(res.json).toHaveBeenCalledWith(mockProduct);
+    });
+
+    it('should handle Invalid product ID', async () => {
+      const invalidProducId = 'invalid-id';
+
+      req.params.id = invalidProducId;
+
+      req.body = {
+        name: 'Updated Product',
+        amount: 40,
+        description: 'Updated Product description',
+        idCategory: '123456789012345678908888'
+      };
+
+      setupFailedUpdate(new Error('Invalid product ID'));
+      
+      await ProductController.updateProduct(req, res);
+
+      expect(res.status).toHaveBeenCalledWith(400);
+      expect(res.json).toHaveBeenCalledWith({ error: 'Invalid product ID' });
+
+    });
+
+    it('should handle Invalid category ID', async () => {
+
+      req.body = {
+        name: 'Updated Product',
+        amount: 40,
+        description: 'Updated Product description',
+        idCategory: 'invalid-id'
+      };
+
+      setupFailedUpdate(new Error('Invalid category ID'));
+      
+      await ProductController.updateProduct(req, res);
+
+      expect(res.status).toHaveBeenCalledWith(400);
+      expect(res.json).toHaveBeenCalledWith({ error: 'Invalid category ID' });
+
+    });
+
+    it('should handle category does not exist', async () => {
+
+      req.body = {
+        _id: '123456789012345678901222',
+        amount: 40,
+        name: 'Updated Product',
+        description: 'Updated Product description',
+        idCategory: '123456789012345678908888'
+      };
+
+      setupFailedUpdate(new Error('Category does not exist'));
+      (CategoryModel.findById as jest.Mock).mockResolvedValue(null);
+
+      await ProductController.updateProduct(req, res);
+
+      expect(res.status).toHaveBeenCalledWith(404);
+      expect(res.json).toHaveBeenCalledWith({ error: 'Category does not exist' });
+
+    });
+
+    it('should handle All fields are required', async () => {
+
+      req.body = {};
+
+      setupFailedUpdate(new Error('All fields are required'));
+
+      await ProductController.updateProduct(req, res);
+
+      expect(res.status).toHaveBeenCalledWith(400);
+      expect(res.json).toHaveBeenCalledWith({ error: 'All fields are required' });
+
+    });
+
+    it('should handle internal server error', async () => {
+      setupFailedUpdate(new Error('Test error'));
+      setupExistingCategory();
+
+      req.body = {
+        name: 'Updated Product',
+        description: 'Updated Product description',
+        amount: 200,
+        idCategory: '123456789012345678901234',
+      };
+
+      await ProductController.updateProduct(req, res);
+
+      expect(res.status).toHaveBeenCalledWith(500);
+      expect(res.json).toHaveBeenCalledWith({
+        error: 'Oops! An error occurred on our server. Please try again or contact support.',
+      });
+    });
+
 
   })
 
