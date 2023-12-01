@@ -20,18 +20,19 @@ class ProductController {
     try {
       const { name, description, amount, idCategory } = req.body;
 
-      let validIdCategory = idCategory;
-      validIdCategory.trim();
-
       if (!name || !description || !amount || !idCategory) {
         res.status(400).json({ error: 'All fields are required' });
         return;
       }
+      let validIdCategory = idCategory;
 
       if (!mongoose.Types.ObjectId.isValid(validIdCategory)) {
         res.status(400).json({ error: 'Invalid category ID' });
         return;
       }
+
+      validIdCategory.trim();
+
 
       const existCategory = await CategoryModel.findById(idCategory);
 
@@ -51,7 +52,7 @@ class ProductController {
       res.status(201).json(newProduct);
     } catch (error) {
       console.error('Error creating product:', error);
-      res.status(500).json({ error: 'Internal Server Error' });
+      res.status(500).json({ error: 'Oops! An error occurred on our server. Please try again or contact support.' });
     }
   }
 
