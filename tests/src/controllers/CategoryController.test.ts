@@ -8,6 +8,7 @@ jest.mock('../../../src/models/Category', () => ({
   find: jest.fn(),
   findById: jest.fn(),
   findByIdAndUpdate: jest.fn(),
+  findByIdAndDelete: jest.fn()
 
 }));
 
@@ -47,6 +48,17 @@ describe('CategoryController test suite', () => {
 
   const setupFailedUpdate = (error: Error) => {
     (CategoryModel.findByIdAndUpdate as jest.Mock).mockRejectedValue(error);
+  };
+
+  const setupSuccessfulDelete = (categoryId: string) => {
+    (CategoryModel.findByIdAndDelete as jest.Mock).mockResolvedValue({
+      _id: categoryId,
+      name: 'Deleted Category',
+    });
+  };
+
+  const setupFailedDelete = (error: Error) => {
+    (CategoryModel.findByIdAndDelete as jest.Mock).mockRejectedValue(error);
   };
 
   describe('POST requests', () => {
@@ -191,55 +203,113 @@ describe('CategoryController test suite', () => {
 
     it('should handle invalid category ID', async () => {
       const invalidCategoryId = 'invalid-id';
-  
+
       req.params.id = invalidCategoryId;
       req.body = { name: 'Updated Category' };
-  
+
       await CategoryController.updateCategory(req, res);
-  
+
       expect(res.status).toHaveBeenCalledWith(400);
       expect(res.json).toHaveBeenCalledWith({ error: 'Invalid category ID' });
     });
 
     it('should handle missing name field', async () => {
       const categoryId = new mongoose.Types.ObjectId().toString();
-  
+
       req.params.id = categoryId;
       req.body = {};
-  
+
       await CategoryController.updateCategory(req, res);
-  
+
       expect(res.status).toHaveBeenCalledWith(400);
       expect(res.json).toHaveBeenCalledWith({ error: 'Name is required' });
     });
 
     it('should handle category not found', async () => {
       const nonExistingCategoryId = new mongoose.Types.ObjectId().toString();
-  
+
       setupFailedUpdate(new Error('Category not found'));
       (CategoryModel.findByIdAndUpdate as jest.Mock).mockResolvedValue(null);
-  
+
       req.params.id = nonExistingCategoryId;
       req.body = { name: 'Updated Category' };
-  
+
       await CategoryController.updateCategory(req, res);
-  
+
       expect(res.status).toHaveBeenCalledWith(404);
       expect(res.json).toHaveBeenCalledWith({ error: 'Category not found' });
     });
 
     it('should handle internal server error', async () => {
       const categoryId = new mongoose.Types.ObjectId().toString();
-  
+
       setupFailedUpdate(new Error('Test error'));
-  
+
       req.params.id = categoryId;
       req.body = { name: 'Updated Category' };
-  
+
       await CategoryController.updateCategory(req, res);
-  
+
       expect(res.status).toHaveBeenCalledWith(500);
       expect(res.json).toHaveBeenCalledWith({ error: 'Oops! An error occurred on our server. Please try again or contact support.' });
+    });
+
+  })
+
+  describe('DELETE requests', () => {
+
+    it('should delete a category successfully', async () => {
+      const categoryId = new mongoose.Types.ObjectId().toString();
+
+      setupSuccessfulDelete(categoryId);
+
+      req.params.id = categoryId;
+
+      await CategoryController.deleteCategory(req, res);
+
+      expect((CategoryModel.findByIdAndDelete as jest.Mock)).toHaveBeenCalledWith(categoryId);
+      expect(res.status).toHaveBeenCalledWith(200);
+      expect(res.json).toHaveBeenCalledWith({ removed: true, id: categoryId });
+    });
+
+    it('should handle invalid category ID', async () => {
+      const invalidCategoryId = 'invalid-id';
+
+      req.params.id = invalidCategoryId;
+
+      await CategoryController.deleteCategory(req, res);
+
+      expect(res.status).toHaveBeenCalledWith(400);
+      expect(res.json).toHaveBeenCalledWith({ error: 'Invalid category ID' });
+    });
+
+    it('should handle category not found', async () => {
+      const nonExistingCategoryId = new mongoose.Types.ObjectId().toString();
+
+      setupFailedDelete(new Error('Category not found'));
+      (CategoryModel.findByIdAndDelete as jest.Mock).mockResolvedValue(null);
+
+      req.params.id = nonExistingCategoryId;
+
+      await CategoryController.deleteCategory(req, res);
+
+      expect(res.status).toHaveBeenCalledWith(404);
+      expect(res.json).toHaveBeenCalledWith({ error: 'Category not found' });
+    });
+
+    it('should handle internal server error', async () => {
+      const categoryId = new mongoose.Types.ObjectId().toString();
+
+      setupFailedDelete(new Error('Test error'));
+
+      req.params.id = categoryId;
+
+      await CategoryController.deleteCategory(req, res);
+
+      expect(res.status).toHaveBeenCalledWith(500);
+      expect(res.json).toHaveBeenCalledWith({
+        error: 'Oops! An error occurred on our server. Please try again or contact support.',
+      });
     });
 
   })
