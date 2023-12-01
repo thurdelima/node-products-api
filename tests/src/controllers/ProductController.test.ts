@@ -10,7 +10,8 @@ jest.mock('../../../src/models/Product', () => ({
   create: jest.fn(),
   find: jest.fn(),
   findById: jest.fn(),
-  findByIdAndUpdate: jest.fn()
+  findByIdAndUpdate: jest.fn(),
+  findByIdAndDelete: jest.fn()
 }));
 
 jest.mock('../../../src/models/Category', () => ({
@@ -83,6 +84,15 @@ describe('ProductController test suite', () => {
   const setupFailedUpdate = (error: Error) => {
     (ProductModel.findByIdAndUpdate as jest.Mock).mockRejectedValue(error);
   };
+
+  const setupSuccessfulDelete = (product: any) => {
+    (ProductModel.findByIdAndDelete as jest.Mock).mockResolvedValue(product);
+  };
+
+  const setupFailedDelete = (error: Error) => {
+    (ProductModel.findByIdAndDelete as jest.Mock).mockRejectedValue(error);
+  };
+
 
   describe('POST requests', () => {
 
@@ -292,7 +302,7 @@ describe('ProductController test suite', () => {
       };
 
       setupFailedUpdate(new Error('Invalid product ID'));
-      
+
       await ProductController.updateProduct(req, res);
 
       expect(res.status).toHaveBeenCalledWith(400);
@@ -310,7 +320,7 @@ describe('ProductController test suite', () => {
       };
 
       setupFailedUpdate(new Error('Invalid category ID'));
-      
+
       await ProductController.updateProduct(req, res);
 
       expect(res.status).toHaveBeenCalledWith(400);
@@ -370,6 +380,52 @@ describe('ProductController test suite', () => {
       });
     });
 
+
+  })
+
+  describe('DELETE requests', () => {
+
+    it('should delete a product successfully', async () => {
+      const mockProduct = { _id: '123456789012345678901222', name: 'Deleted Product' };
+  
+      setupSuccessfulDelete(mockProduct);
+  
+      await ProductController.deleteProduct(req, res);
+  
+      expect((ProductModel.findByIdAndDelete as jest.Mock)).toHaveBeenCalledWith('123456789012345678901222');
+      expect(res.status).toHaveBeenCalledWith(200);
+      expect(res.json).toHaveBeenCalledWith({ removed: true, id: '123456789012345678901222' });
+    });
+
+    it('should handle invalid product ID', async () => {
+      req.params.id = 'invalid-id';
+  
+      await ProductController.deleteProduct(req, res);
+  
+      expect(res.status).toHaveBeenCalledWith(400);
+      expect(res.json).toHaveBeenCalledWith({ error: 'Invalid Product ID' });
+    });
+
+    it('should handle product not found', async () => {
+      setupFailedDelete(new Error('Product not found'));
+      (ProductModel.findByIdAndDelete as jest.Mock).mockResolvedValue(null);
+  
+      await ProductController.deleteProduct(req, res);
+  
+      expect(res.status).toHaveBeenCalledWith(404);
+      expect(res.json).toHaveBeenCalledWith({ error: 'Product not found' });
+    });
+
+    it('should handle internal server error', async () => {
+      setupFailedDelete(new Error('Test error'));
+  
+      await ProductController.deleteProduct(req, res);
+  
+      expect(res.status).toHaveBeenCalledWith(500);
+      expect(res.json).toHaveBeenCalledWith({
+        error: 'Oops! An error occurred on our server. Please try again or contact support.',
+      });
+    });
 
   })
 
