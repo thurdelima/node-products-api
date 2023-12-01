@@ -18,7 +18,7 @@ interface Category {
 }
 
 
-describe.skip('CategoryController test suite', () => {
+describe('CategoryController test suite', () => {
   let req: Request;
   let res: Response;
 

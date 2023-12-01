@@ -181,6 +181,100 @@ describe('ProductController test suite', () => {
       expect(res.json).toHaveBeenCalledWith({ error: 'Oops! An error occurred on our server. Please try again or contact support.' });
     });
 
+    it('should calculate parcel successfully', async () => {
+      req.body = {
+        name: 'Test Product',
+        description: 'Test Product description',
+        amount: 100,
+        idCategory: '123456789012345678901234',
+        _id: '123456789012345678901222',
+        parcelAmount: 3,
+        feesPercent: 5,
+      };
+  
+      await ProductController.calculateParcel(req, res);
+  
+      expect(res.status).toHaveBeenCalledWith(200);
+      expect(res.json).toHaveBeenCalledWith({
+        fullAmount: 100,
+        feePercent: 0.05,
+        parcelAmount: 3,
+        valueByParcel: expect.any(Number),
+        maskValueByParcel: expect.any(String),
+      });
+    });
+
+    it('should to try calculate parcel with Invalid category ID', async () => {
+      req.body = {
+        name: 'Test Product',
+        description: 'Test Product description',
+        amount: 100,
+        idCategory: 'invalid-category-id',
+        _id: '123456789012345678901222',
+        parcelAmount: 3,
+        feesPercent: 5,
+      };
+  
+      await ProductController.calculateParcel(req, res);
+  
+      expect(res.status).toHaveBeenCalledWith(400);
+      expect(res.json).toHaveBeenCalledWith({ error: 'Invalid category ID' });
+    });
+
+    it('should to try calculate parcel with Invalid product ID', async () => {
+      req.body = {
+        name: 'Test Product',
+        description: 'Test Product description',
+        amount: 100,
+        idCategory: '123456789012345678901234',
+        _id: 'invalid-product-id',
+        parcelAmount: 3,
+        feesPercent: 5,
+      };
+  
+      await ProductController.calculateParcel(req, res);
+  
+      expect(res.status).toHaveBeenCalledWith(400);
+      expect(res.json).toHaveBeenCalledWith({ error: 'Invalid product ID' });
+    });
+
+    it('should to try calculate parcel with missing fields', async () => {
+      req.body = {};
+  
+      await ProductController.calculateParcel(req, res);
+  
+      expect(res.status).toHaveBeenCalledWith(400);
+      expect(res.json).toHaveBeenCalledWith({ error: 'All fields are required' });
+    });
+
+    it('should handle internal server error', async () => {
+
+      req.body = {
+        name: 'Test Product',
+        description: 'Test Product description',
+        amount: 100,
+        idCategory: '123456789012345678901234',
+        _id: '123456789012345678901222',
+        parcelAmount: 3,
+        feesPercent: 5,
+      };
+      
+      jest.spyOn(console, 'error').mockImplementation(() => {});
+      jest.spyOn(Math, 'pow').mockImplementation(() => {
+        throw new Error('Simulated error');
+      });
+  
+      await ProductController.calculateParcel(req, res);
+  
+      expect(res.status).toHaveBeenCalledWith(500);
+      expect(res.json).toHaveBeenCalledWith({
+        error: 'Oops! An error occurred on our server. Please try again or contact support.',
+      });
+  
+      
+      jest.restoreAllMocks();
+    });
+
 
   })
 
