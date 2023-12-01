@@ -348,6 +348,26 @@ describe('ProductController test suite', () => {
 
     });
 
+    it('should handle Product not found', async () => {
+
+      req.body = {
+        amount: 40,
+        name: 'Updated Product',
+        description: 'Updated Product description',
+        idCategory: '123456789012345678901234'
+      };
+
+      setupFailedUpdate(new Error('Product not found'));
+      setupExistingCategory();
+      (ProductModel.findByIdAndUpdate as jest.Mock).mockResolvedValue(null);
+
+      await ProductController.updateProduct(req, res);
+
+      expect(res.status).toHaveBeenCalledWith(404);
+      expect(res.json).toHaveBeenCalledWith({ error: 'Product not found' });
+
+    });
+
     it('should handle All fields are required', async () => {
 
       req.body = {};
