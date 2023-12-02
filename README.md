@@ -4,7 +4,7 @@ Node project based gen test.
 
 ## 💡 Docs:
 
-Access http://localhost:3010/documentation-api to view descriptions of endpoints
+Access http://localhost:3010/documentation-api to view descriptions of endpoints.
 
 <div align="center" >
   <img src="./swagger.gif">
@@ -24,10 +24,13 @@ To run tests, just type npm run test.
 
 ## 🐋 Container
 
-Just docker-compose up, to up container project.
+Just docker-compose up, to up container project. Case you want run local, just npm run dev.
 
 ```bash
   docker-compose up
+```
+```bash
+  npm run dev
 ```
 
 <div align="center" >
