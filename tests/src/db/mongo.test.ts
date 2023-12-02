@@ -5,7 +5,7 @@ import connect from "../../../src/db/mongo";
 
 jest.mock('mongoose');
 
-describe('Database connection', () => {
+describe('Database connection test suite', () => {
 
   const originalEnv = process.env;
 
